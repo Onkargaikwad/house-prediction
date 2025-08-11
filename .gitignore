@@ -1,0 +1,16 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Python/venv junk
+__pycache__/
+*.pyc
+Lib/
+Scripts/
+Include/
+share/
+pyvenv.cfg
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+# OS
+.DS_Store
+Thumbs.db

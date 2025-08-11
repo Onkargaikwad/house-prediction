@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Housing Price Prediction UI</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: #12141a;
+      --muted: #9aa3af;
+      --text: #e5e7eb;
+      --accent: #6366f1;
+      --accent-2: #22d3ee;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --border: #1f2430;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f3f4f6;
+        --card: #ffffff;
+        --muted: #6b7280;
+        --text: #0f172a;
+        --accent: #4f46e5;
+        --accent-2: #0891b2;
+        --danger: #dc2626;
+        --ok: #059669;
+        --border: #e5e7eb;
+        --shadow: 0 10px 30px rgba(0,0,0,.08);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 90% -10%, rgba(99,102,241,.12), transparent 60%),
+                  radial-gradient(1200px 800px at -10% 110%, rgba(34,211,238,.10), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+    }
+
+    .container { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap: 16px; margin-bottom: 18px; }
+    header .title {
+      font-weight: 800; letter-spacing: .2px; font-size: clamp(22px, 2.4vw, 32px);
+      display:flex; align-items:center; gap:12px;
+    }
+    .badge { font-size: 12px; color: var(--muted); border: 1px solid var(--border); padding: 4px 8px; border-radius: 999px; }
+
+    .card { background: var(--card); border:1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+    .card.pad { padding: 20px; }
+
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .grid > .col-12 { grid-column: span 12; }
+    .grid > .col-6  { grid-column: span 6; }
+    .grid > .col-4  { grid-column: span 4; }
+    .grid > .col-3  { grid-column: span 3; }
+    @media (max-width: 880px) { .grid > [class^="col-"] { grid-column: span 12; } }
+
+    label { font-weight: 600; font-size: 13px; color: var(--muted); display:inline-flex; align-items:center; gap:8px; margin-bottom: 8px; }
+    .field { display:flex; flex-direction:column; }
+
+    input[type="number"], select, input[type="text"] {
+      appearance:none; width:100%; background: transparent; border:1px solid var(--border); color: var(--text);
+      border-radius: 12px; padding: 12px 14px; outline: none;
+    }
+    input[type="number"]:focus, select:focus, input[type="text"]:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 4px rgba(99,102,241,.15);
+    }
+
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .actions { display:flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .btn { border-radius: 12px; padding: 10px 14px; border:1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); color: var(--text);
+      cursor: pointer; font-weight: 600; transition: transform .08s ease, box-shadow .2s ease; display:inline-flex; align-items:center; gap:8px; }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+    .btn.primary { background: linear-gradient(180deg, var(--accent), var(--accent-2)); border: none; color: white; }
+    .btn.ghost { background: transparent; }
+
+    .result { margin-top: 18px; }
+    .result .price { font-size: clamp(22px, 3vw, 34px); font-weight: 800; letter-spacing: .2px; }
+    .result small { color: var(--muted); }
+
+    .status { display:flex; align-items:center; gap:10px; font-size: 14px; }
+    .dot { width:10px; height:10px; border-radius: 50%; background: var(--muted); display:inline-block; }
+    .dot.ok { background: var(--ok); }
+    .dot.err { background: var(--danger); }
+
+    .footer { color: var(--muted); font-size: 12px; text-align:center; margin: 20px 0; }
+    .callout { font-size: 13px; padding: 10px 12px; border:1px dashed var(--border); border-radius: 12px; color: var(--muted); }
+    .divider { height:1px; background: var(--border); margin: 16px 0; }
+
+    .pill { font-size: 12px; border:1px solid var(--border); padding: 6px 8px; border-radius: 999px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">🏠 Housing Price Predictor <span class="badge">Flask UI</span></div>
+      <div class="pill" id="apiStatus"><span class="dot" id="statusDot"></span><span id="statusText">Not connected</span></div>
+    </header><section class="card pad">
+      <form id="predictForm">
+        <div class="grid">
+          <div class="col-4"><div class="field"><label>Area (sq ft)</label><input type="number" id="area" min="0" required placeholder=" "><div class="hint"><code>area</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Bedrooms</label><input type="number" id="bedrooms" min="0" required placeholder=" "><div class="hint"><code>bedrooms</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Bathrooms</label><input type="number" id="bathrooms" min="0" required placeholder=" "><div class="hint"><code>bathrooms</code></div></div></div>
+
+          <div class="col-4"><div class="field"><label>Stories</label><input type="number" id="stories" min="0" required placeholder=" "><div class="hint"><code>stories</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Main Road</label><select id="mainroad" required><option value="">Select</option><option>yes</option><option>no</option></select><div class="hint"><code>mainroad</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Guest Room</label><select id="guestroom" required><option value="">Select</option><option>yes</option><option>no</option></select><div class="hint"><code>guestroom</code></div></div></div>
+
+          <div class="col-4"><div class="field"><label>Basement</label><select id="basement" required><option value="">Select</option><option>yes</option><option>no</option></select><div class="hint"><code>basement</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Hot Water Heating</label><select id="hotwaterheating" required><option value="">Select</option><option>yes</option><option>no</option></select><div class="hint"><code>hotwaterheating</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Air Conditioning</label><select id="airconditioning" required><option value="">Select</option><option>yes</option><option>no</option></select><div class="hint"><code>airconditioning</code></div></div></div>
+
+          <div class="col-4"><div class="field"><label>Parking (spots)</label><input type="number" id="parking" min="0" required placeholder=" "><div class="hint"><code>parking</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Preferred Area</label><select id="prefarea" required><option value="">Select</option><option>yes</option><option>no</option></select><div class="hint"><code>prefarea</code></div></div></div>
+          <div class="col-4"><div class="field"><label>Furnishing Status</label><select id="furnishingstatus" required><option value="">Select</option><option>furnished</option><option>semi-furnished</option><option>unfurnished</option></select><div class="hint"><code>furnishingstatus</code></div></div></div>
+
+          <div class="col-12">
+            <div class="actions">
+              <button class="btn primary" type="submit" id="predictBtn">⚡ Predict Price</button>
+              <button class="btn" type="button" id="sampleBtn">🎲 Try Sample</button>
+              <button class="btn ghost" type="reset">↺ Reset</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div class="divider"></div>
+
+      <div id="result" class="result" hidden>
+        <div class="status"><span class="dot ok"></span><strong>Success:</strong> Prediction ready</div>
+        <div style="height:8px;"></div>
+        <div class="card pad">
+          <div class="price" id="priceText">₹ —</div></div>
+      </div>
+
+      <div id="errorBox" class="result" hidden>
+        <div class="status"><span class="dot err"></span><strong>Error:</strong> <span id="errMsg">Something went wrong</span></div>
+      </div>
+
+      <div style="height:10px;"></div>
+      <div class="callout">Tip: Enter realistic property details and click <strong>Predict Price</strong>.</div>
+    </section>
+
+    <p class="footer">Made for your Flask housing model · Works on desktop & mobile · Single file UI</p>
+  </div>
+
+  <script>
+  const API_BASE = window.location.origin.replace(/\/$/, '');
+  const form = document.getElementById('predictForm');
+  const resultBox = document.getElementById('result');
+  const priceText = document.getElementById('priceText');
+  const errorBox = document.getElementById('errorBox');
+  const errMsg = document.getElementById('errMsg');
+  const predictBtn = document.getElementById('predictBtn');
+  const sampleBtn = document.getElementById('sampleBtn');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+
+  function inr(n){ try{return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n);}catch{return '₹'+(Math.round(n)).toLocaleString('en-IN');} }
+
+  async function ping(){
+    try{
+      const res = await fetch(API_BASE + '/api-info',{method:'GET'});
+      if(res.ok){ statusDot.classList.add('ok'); statusText.textContent='Connected'; }
+      else { statusDot.classList.remove('ok'); statusText.textContent='API unreachable'; }
+    }catch{ statusDot.classList.remove('ok'); statusText.textContent='API unreachable'; }
+  }
+  setTimeout(ping,200);
+
+  sampleBtn.addEventListener('click',()=>{
+    const ex={ area:7420,bedrooms:4,bathrooms:2,stories:3,mainroad:'yes',guestroom:'no',basement:'no',hotwaterheating:'no',airconditioning:'yes',parking:2,prefarea:'yes',furnishingstatus:'furnished'};
+    for(const [k,v] of Object.entries(ex)){ const el=document.getElementById(k); if(el) el.value=v; }
+    document.getElementById('area').focus();
+  });
+
+  form.addEventListener('submit',async(e)=>{
+    e.preventDefault();
+    errorBox.hidden=true; resultBox.hidden=true;
+
+    const payload={
+      area:Number(document.getElementById('area').value),
+      bedrooms:Number(document.getElementById('bedrooms').value),
+      bathrooms:Number(document.getElementById('bathrooms').value),
+      stories:Number(document.getElementById('stories').value),
+      mainroad:document.getElementById('mainroad').value,
+      guestroom:document.getElementById('guestroom').value,
+      basement:document.getElementById('basement').value,
+      hotwaterheating:document.getElementById('hotwaterheating').value,
+      airconditioning:document.getElementById('airconditioning').value,
+      parking:Number(document.getElementById('parking').value),
+      prefarea:document.getElementById('prefarea').value,
+      furnishingstatus:document.getElementById('furnishingstatus').value,
+    };
+
+    if(Object.values(payload).some(v=>v===''||v===null||Number.isNaN(v))){ errorBox.hidden=false; errMsg.textContent='Please fill all fields correctly.'; return; }
+
+    predictBtn.disabled=true; const prev=predictBtn.textContent; predictBtn.textContent='Predicting…';
+    try{
+      const res=await fetch(API_BASE+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(!res.ok){ const txt=await res.text(); throw new Error(txt||('HTTP '+res.status)); }
+      const data=await res.json();
+      const val=data.predicted_price ?? data.price ?? data.prediction;
+      priceText.textContent=(typeof val==='number') ? inr(val) : String(val);
+      resultBox.hidden=false;
+    }catch(err){ errorBox.hidden=false; errMsg.textContent=err.message||'Request failed'; }
+    finally{ predictBtn.disabled=false; predictBtn.textContent=prev; }
+  });
+</script>
+</body>
+</html>
